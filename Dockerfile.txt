@@ -1,0 +1,39 @@
+FROM mcr.microsoft.com/devcontainers/python:3.11
+
+# Instala ferramentas essenciais
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    curl \
+    wget \
+    gnupg \
+    lsb-release \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala Docker CLI (opcional)
+RUN curl -fsSL https://get.docker.com -o get-docker.sh \
+    && sh get-docker.sh \
+    && rm get-docker.sh
+
+# Configura ambiente Python
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
+
+# Cria script de conexão automática
+RUN echo '#!/bin/bash\n\
+echo "Conectando ao PostgreSQL..."\n\
+psql -h db -U aluno -d aula_db\n\
+' > /usr/local/bin/connect-db \
+    && chmod +x /usr/local/bin/connect-db
+
+# Define usuário padrão
+USER vscode
+
+# Configura aliases úteis
+RUN echo '\n\
+# Aliases para aula de banco de dados\n\
+alias pg-connect="psql -h db -U aluno -d aula_db"\n\
+alias pg-backup="pg_dump -h db -U aluno -d aula_db -Fc"\n\
+alias pg-restore="pg_restore -h db -U aluno -d aula_db"\n\
+alias pg-admin="echo \"Acesse: http://localhost:5050\" && echo \"Email: admin@aula.local\" && echo \"Senha: Admin123!\"\n\
+' >> ~/.bashrc
